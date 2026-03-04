@@ -1,43 +1,171 @@
-import { motion } from "framer-motion";
-import { User, Mail, BookOpen, Target, Calendar, Trophy } from "lucide-react";
-
+import { useEffect, useState } from "react";
+import { BookOpen, Target, Calendar, Trophy } from "lucide-react";
+import { getUser } from "../lib/utilss/getUser.js";
 export default function ProfilePage() {
-  const user = JSON.parse(localStorage.getItem("studyos_user") || '{"name":"Alex","email":"alex@gmail.com"}');
 
-  const profileStats = [
-    { label: "Topics Mastered", value: "24", icon: BookOpen },
-    { label: "Problems Solved", value: "156", icon: Target },
-    { label: "Days Active", value: "45", icon: Calendar },
-    { label: "Achievements", value: "12", icon: Trophy },
-  ];
+  const user = getUser();
+
+  const [xp, setXp] = useState(0);
+  const [level, setLevel] = useState(1);
+  const [streak, setStreak] = useState(0);
+  const [sessions, setSessions] = useState(0);
+
+  useEffect(() => {
+
+    const fetchDashboard = async () => {
+
+      try {
+
+        const res = await fetch(
+          `http://localhost:5000/api/dashboard?userId=${user.userId}`
+        );
+
+        const data = await res.json();
+
+        if (data.success) {
+          setXp(data.dashboard.xp);
+          setLevel(data.dashboard.level);
+          setStreak(data.dashboard.streak);
+          setSessions(data.dashboard.totalSessions);
+        }
+
+      } catch (error) {
+        console.error("Error fetching dashboard:", error);
+      }
+
+    };
+
+    fetchDashboard();
+
+  }, []);
 
   return (
-    <div className="space-y-6 max-w-2xl">
+
+    <div className="space-y-6 max-w-5xl">
+
+      {/* HEADER */}
+
       <div>
-        <h1 className="font-display text-2xl font-bold text-foreground">Profile</h1>
-        <p className="text-muted-foreground mt-1">Your learning profile and stats</p>
+
+        <h1 className="text-2xl font-bold">
+          Profile
+        </h1>
+
+        <p className="text-muted-foreground">
+          Your learning profile and stats
+        </p>
+
       </div>
 
-      <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="rounded-xl border bg-card shadow-card p-6">
-        <div className="flex items-center gap-4 mb-6">
-          <div className="w-16 h-16 rounded-full gradient-hero flex items-center justify-center">
-            <User className="w-8 h-8 text-primary-foreground" />
-          </div>
+
+      {/* USER CARD */}
+
+      <div className="p-6 rounded-xl border bg-card">
+
+        <h2 className="font-semibold text-lg">
+          {user.name}
+        </h2>
+
+        <p className="text-muted-foreground">
+          {user.userId}
+        </p>
+
+      </div>
+
+
+      {/* STATS GRID */}
+
+      <div className="grid md:grid-cols-2 gap-4">
+
+
+        {/* TOTAL XP */}
+
+        <div className="p-6 rounded-xl border bg-card flex items-center gap-4">
+
+          <BookOpen className="text-purple-500" />
+
           <div>
-            <h2 className="font-display text-xl font-bold text-foreground">{user.name}</h2>
-            <p className="text-muted-foreground flex items-center gap-1.5"><Mail className="w-4 h-4" /> {user.email}</p>
+
+            <p className="text-2xl font-bold">
+              {xp}
+            </p>
+
+            <p className="text-sm text-muted-foreground">
+              Total XP
+            </p>
+
           </div>
+
         </div>
-        <div className="grid grid-cols-2 gap-4">
-          {profileStats.map((s, i) => (
-            <div key={i} className="p-4 rounded-lg bg-muted/30 border text-center">
-              <s.icon className="w-5 h-5 text-primary mx-auto mb-2" />
-              <p className="text-2xl font-display font-bold text-foreground">{s.value}</p>
-              <p className="text-xs text-muted-foreground">{s.label}</p>
-            </div>
-          ))}
+
+
+        {/* LEVEL */}
+
+        <div className="p-6 rounded-xl border bg-card flex items-center gap-4">
+
+          <Target className="text-blue-500" />
+
+          <div>
+
+            <p className="text-2xl font-bold">
+              Level {level}
+            </p>
+
+            <p className="text-sm text-muted-foreground">
+              Current Level
+            </p>
+
+          </div>
+
         </div>
-      </motion.div>
+
+
+        {/* STREAK */}
+
+        <div className="p-6 rounded-xl border bg-card flex items-center gap-4">
+
+          <Calendar className="text-green-500" />
+
+          <div>
+
+            <p className="text-2xl font-bold">
+              {streak}
+            </p>
+
+            <p className="text-sm text-muted-foreground">
+              Day Streak
+            </p>
+
+          </div>
+
+        </div>
+
+
+        {/* SESSIONS */}
+
+        <div className="p-6 rounded-xl border bg-card flex items-center gap-4">
+
+          <Trophy className="text-orange-500" />
+
+          <div>
+
+            <p className="text-2xl font-bold">
+              {sessions}
+            </p>
+
+            <p className="text-sm text-muted-foreground">
+              Sessions Completed
+            </p>
+
+          </div>
+
+        </div>
+
+
+      </div>
+
     </div>
+
   );
+
 }

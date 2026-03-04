@@ -1,261 +1,106 @@
-require("dotenv").config();
-const express = require("express");
-const cors = require("cors");
+import { useEffect, useState } from "react";
+import { AlertTriangle, Brain } from "lucide-react";
 
-const { generateAIResponse } = require("./bedrockService");
-const {
-  updateUserXP,
-  getUser,
-  saveStudySession,
-  getStudySessions,
-  savePlanner,
-  getPlanner,
-  checkAndAwardBadges,
-  getUserBadges,
-  getLeaderboard
-} = require("./dynamoService");
+export default function WeaknessPage() {
 
-const app = express();
-app.use(cors());
-app.use(express.json());
+  const [weakTopics, setWeakTopics] = useState<string[]>([]);
+  const userId = "user123";
 
-/* =================================================
-   ROOT
-================================================= */
-app.get("/", (req, res) => {
-  res.send("StudyOS Backend Running 🚀");
-});
+  useEffect(() => {
 
-/* =================================================
-   AI ASSISTANT
-================================================= */
-app.post("/api/assistant/ask", async (req, res) => {
-  try {
-    const { question } = req.body;
+    const fetchSessions = async () => {
 
-    if (!question)
-      return res.status(400).json({ error: "Question required" });
+      try {
 
-    const aiResponse = await generateAIResponse(question);
+        const res = await fetch(
+          `http://localhost:5000/api/sessions?userId=${userId}`
+        );
 
-    res.json({
-      success: true,
-      answer: aiResponse
-    });
-  } catch (error) {
-    console.error("AI Error:", error);
-    res.status(500).json({ success: false });
-  }
-});
+        const data = await res.json();
 
-/* =================================================
-   COMPLETE STUDY SESSION
-================================================= */
-app.post("/api/session/complete", async (req, res) => {
-  try {
-    const { userId, xpEarned, duration } = req.body;
+        if (data.success) {
 
-    if (!userId || !xpEarned || !duration)
-      return res.status(400).json({
-        error: "userId, xpEarned and duration required"
-      });
+          analyzeWeakness(data.sessions);
 
-    // 1. Update XP + Smart Streak
-    const updatedUser = await updateUserXP(userId, xpEarned);
+        }
 
-    // 2. Save study session
-    const session = await saveStudySession(userId, duration, xpEarned);
+      } catch (err) {
+        console.error(err);
+      }
 
-    // 3. Get total sessions
-    const sessions = await getStudySessions(userId);
-
-    // 4. Prepare user object for badge engine
-    const userWithMeta = {
-      ...updatedUser,
-      totalSessions: sessions.length
     };
 
-    // 5. Check & award badges
-    const newBadges = await checkAndAwardBadges(userWithMeta);
+    fetchSessions();
 
-    res.json({
-      success: true,
-      user: updatedUser,
-      session,
-      newBadges
+  }, []);
+
+  const analyzeWeakness = (sessions: any[]) => {
+
+    const topicCount: any = {};
+
+    sessions.forEach((s) => {
+
+      const topic = s.topic || "Unknown";
+
+      topicCount[topic] = (topicCount[topic] || 0) + 1;
+
     });
 
-  } catch (error) {
-    console.error("Session Error:", error);
-    res.status(500).json({ success: false });
-  }
-});
+    const weak = Object.keys(topicCount).filter(
+      topic => topicCount[topic] < 2
+    );
 
-/* =================================================
-   DASHBOARD
-================================================= */
-app.get("/api/dashboard", async (req, res) => {
-  try {
-    const { userId } = req.query;
+    setWeakTopics(weak);
 
-    if (!userId)
-      return res.status(400).json({ error: "userId required" });
+  };
 
-    const user = await getUser(userId);
-    const sessions = await getStudySessions(userId);
-    const badges = await getUserBadges(userId);
+  return (
 
-    if (!user)
-      return res.status(404).json({ error: "User not found" });
+    <div className="space-y-6 max-w-4xl">
 
-    const xp = user.xp || 0;
-    const level = Math.floor(xp / 100) + 1;
-    const xpInLevel = xp % 100;
+      <div>
 
-    res.json({
-      success: true,
-      dashboard: {
-        userId,
-        xp,
-        level,
-        streak: user.streak || 1,
-        totalSessions: sessions.length,
-        xpToNextLevel: 100 - xpInLevel,
-        progressPercent: xpInLevel,
-        badges
-      }
-    });
+        <h1 className="text-2xl font-bold flex items-center gap-2">
+          Weakness Analyzer
+          <Brain className="text-purple-500" />
+        </h1>
 
-  } catch (error) {
-    console.error("Dashboard Error:", error);
-    res.status(500).json({ success: false });
-  }
-});
+        <p className="text-muted-foreground">
+          Topics you should practice more
+        </p>
 
-/* =================================================
-   GET STUDY SESSIONS
-================================================= */
-app.get("/api/sessions", async (req, res) => {
-  try {
-    const { userId } = req.query;
+      </div>
 
-    if (!userId)
-      return res.status(400).json({ error: "userId required" });
+      <div className="space-y-3">
 
-    const sessions = await getStudySessions(userId);
+        {weakTopics.map((topic, index) => (
 
-    res.json({
-      success: true,
-      sessions
-    });
+          <div
+            key={index}
+            className="p-4 border rounded-lg flex items-center gap-3"
+          >
 
-  } catch (error) {
-    console.error("Get Sessions Error:", error);
-    res.status(500).json({ success: false });
-  }
-});
+            <AlertTriangle className="text-orange-500" />
 
-/* =================================================
-   GENERATE STUDY PLANNER
-================================================= */
-app.post("/api/planner/generate", async (req, res) => {
-  try {
-    const { userId, topic } = req.body;
+            <div>
 
-    if (!userId || !topic)
-      return res.status(400).json({
-        error: "userId and topic required"
-      });
+              <p className="font-semibold">
+                {topic}
+              </p>
 
-    const prompt = `
-Create a structured 7-day study plan for ${topic}.
-Break into daily tasks with short explanations.
-Keep it beginner friendly.
-`;
+              <p className="text-sm text-muted-foreground">
+                Practice more problems on this topic
+              </p>
 
-    const aiPlanner = await generateAIResponse(prompt);
-    const savedPlanner = await savePlanner(userId, aiPlanner);
+            </div>
 
-    res.json({
-      success: true,
-      planner: savedPlanner
-    });
+          </div>
 
-  } catch (error) {
-    console.error("Planner Error:", error);
-    res.status(500).json({ success: false });
-  }
-});
+        ))}
 
-/* =================================================
-   GET SAVED PLANNER
-================================================= */
-app.get("/api/planner", async (req, res) => {
-  try {
-    const { userId } = req.query;
+      </div>
 
-    if (!userId)
-      return res.status(400).json({ error: "userId required" });
+    </div>
 
-    const planner = await getPlanner(userId);
-
-    res.json({
-      success: true,
-      planner
-    });
-
-  } catch (error) {
-    console.error("Get Planner Error:", error);
-    res.status(500).json({ success: false });
-  }
-});
-
-/* =================================================
-   GET USER BADGES
-================================================= */
-app.get("/api/badges", async (req, res) => {
-  try {
-    const { userId } = req.query;
-
-    if (!userId)
-      return res.status(400).json({ error: "userId required" });
-
-    const badges = await getUserBadges(userId);
-
-    res.json({
-      success: true,
-      badges
-    });
-
-  } catch (error) {
-    console.error("Get Badges Error:", error);
-    res.status(500).json({ success: false });
-  }
-});
-
-/* =================================================
-   LEADERBOARD
-================================================= */
-app.get("/api/leaderboard", async (req, res) => {
-  try {
-    const leaderboard = await getLeaderboard();
-
-    res.json({
-      success: true,
-      leaderboard
-    });
-
-  } catch (error) {
-    console.error("Leaderboard Error:", error);
-    res.status(500).json({ success: false });
-  }
-});
-
-/* =================================================
-   START SERVER
-================================================= */
-const PORT = process.env.PORT || 5000;
-
-app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
-});
+  );
+}
