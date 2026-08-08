@@ -514,35 +514,7 @@ English           Hinglish
 
 ---
 
-# 📸 Project Screenshots
 
-Add screenshots of the actual application here.
-
-### StudyOS Dashboard
-
-```markdown
-![StudyOS Dashboard](screenshots/dashboard.png)
-```
-
-### Learning Module
-
-```markdown
-![Learning Module](screenshots/learn.png)
-```
-
-### DSA Practice
-
-```markdown
-![DSA Practice](screenshots/practice.png)
-```
-
-### Interview Preparation
-
-```markdown
-![Interview Preparation](screenshots/interview.png)
-```
-
----
 
 # 🏆 Hackathon Project
 
@@ -594,9 +566,6 @@ integration of the StudyOS platform.
 - Application development
 - Project integration
 
-> Update this section with your exact technical contributions.
-> Do not list technologies or modules that you did not personally
-> work on.
 
 ---
 
